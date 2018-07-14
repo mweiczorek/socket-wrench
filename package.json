@@ -5,6 +5,10 @@
   "main": "./lib/index.js",
   "author": "Michael Wieczorek",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mweiczorek/socket-wrench"
+  },
   "typescript": {
     "definition": "./index.d.ts"
   },

@@ -1,5 +1,5 @@
 {
-  "name": "socket-wrench",
+  "name": "sockexchange",
   "version": "1.1.0",
   "description": "NodeJS TCP exchange library",
   "main": "./lib/index.js",
@@ -7,7 +7,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/mweiczorek/socket-wrench"
+    "url": "https://github.com/mweiczorek/sockexchange"
   },
   "typescript": {
     "definition": "./index.d.ts"

@@ -1,21 +1,20 @@
-# SocketWrench
+# SockExchange
 
 ## Simple TCP Client/Server for NodeJS
 
-**SocketWrench** is a simple, lightweight abstraction layer around NodeJS sockets to setup quick TCP communication channels among the NodeJS microservices in your stack.
+**SockExchange** is a simple, lightweight abstraction layer around NodeJS sockets to setup quick TCP communication channels among the NodeJS microservices in your stack.
 
 # Install
 You know what to do...
 
-    npm install socket-wrench --save
-    yarn add socket-wrench
-
+    npm install sockexchange --save
+    yarn add sockexchange
 
 # Usage
 
     import { Client, Server } from "socket-wrench"
 
-There are two facets to **SocketWrench**, the **Server** and the **Client**.
+There are two facets to this package: **Server** and **Client**.
 
 ## Server
 
@@ -187,5 +186,4 @@ Returns the parsed JSON from inbound data. This returns the same value as `clien
 
 # License
 MIT
-
 

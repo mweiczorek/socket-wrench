@@ -12,7 +12,7 @@ You know what to do...
 
 # Usage
 
-    import { Client, Server } from "socket-wrench"
+    import { Client, Server } from "sockexchange"
 
 There are two facets to this package: **Server** and **Client**.
 

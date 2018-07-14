@@ -18,7 +18,6 @@ enum Status {
 
 interface ClientCallbacks {
   onConnect?: (err?: Error) => void
-  onDrain?: () => void
   onDestroy?: () => void
 }
 
@@ -46,11 +45,6 @@ export default class Client {
 
   onConnect(callback: (err?: Error) => void): Client {
     this.callbacks.onConnect = callback
-    return this
-  }
-
-  onDrain(callback: () => void): Client {
-    this.callbacks.onDrain = callback
     return this
   }
 
@@ -110,11 +104,6 @@ export default class Client {
         }
       })
       this.socket.on("data", data => buffer.append(data))
-      this.socket.on("drain", () => {
-        if (this.callbacks.onDrain) {
-          this.callbacks.onDrain()
-        }
-      })
       this.socket.on("close", () => {
         this.log("Client disconnected", this.status == Status.Errored)
         this.socket.destroy()

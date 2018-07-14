@@ -35,11 +35,11 @@ To setup your TCP server, choose your port number and accept one or more "direct
       .start()
 
 	function gimmeJson() {
-		return {
-          foo: "bar",
-          quux: 42,
-          baz: true
-		}
+      return {
+        foo: "bar",
+        quux: 42,
+        baz: true
+      }
 	}
 
 Or, you can call `server.acceptAny()`, and the input string isn't parsed. Instead, the same function is called for any accepted socket connection. Useful if your use case is to send a JSON string for processing and have the app hosting the server do the heavy lifting. If you use this, any `server.accept()` directives are ignored.

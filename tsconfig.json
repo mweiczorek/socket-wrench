@@ -10,6 +10,7 @@
     "outDir": "./lib",
     "strict": true,
     "sourceMap": false,
+    "removeComments": true,
     "strictPropertyInitialization": false
   },
   "include": [

@@ -12,6 +12,13 @@
   "typescript": {
     "definition": "./index.d.ts"
   },
+  "keywords": [
+    "socket",
+    "tcp",
+    "io",
+    "networking",
+    "events"
+  ],
   "devDependencies": {
     "@types/node": "^10.5.2",
     "dts-bundle": "^0.7.3",

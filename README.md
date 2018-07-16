@@ -78,8 +78,9 @@ Socket responses are promises. Perfect for `async/await`.
 
     async function getJsonFromSocket() {
 	    const client = new Client(5555)
-	    const json = await client.requestJson("gimme-json")
-	    console.log(json) // {"foo":"bar","quux":42,"baz":true}
+	    const json = await client.requestJson("gimme-json") // { foo: "bar", quux: 42, baz: true }
+	    console.log(json.foo) // bar
+        console.log(json.quux) // 42
     }
 
 You can also listen for specific events. Connection errors are sent via callback, other errors will accumulate in the `catch()` block.

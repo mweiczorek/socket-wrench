@@ -2,8 +2,8 @@ import { createServer, Socket, Server as SocketServer } from "net"
 import { serverLogger } from "./Logger";
 import { localhostIPV4, localhostIPV6 } from "./Constants";
 
-type DirectiveCallback = () => string | object
-type DefaultCallback = (data: string) => string | object
+type DirectiveCallback = () => string | object | Promise<string | object>
+type DefaultCallback = (data: string) => string | object | Promise<string | object>
 
 const defaultOptions: ServerOptions = {
   logActivity: false,
@@ -48,12 +48,12 @@ export default class Server {
     }
   }
 
-  acceptAny(callback: (data: string) => string | object): Server {
+  acceptAny(callback: (data: string) => string | object | Promise<string | object>): Server {
     this.defaultListener = callback
     return this
   }
 
-  accept(directive: string, callback: () => string | object): Server {
+  accept(directive: string, callback: () => string | object | Promise<string | object>): Server {
     this.listeners.set(directive.trim(), callback)
     return this
   }
@@ -92,14 +92,30 @@ export default class Server {
         socket.on("data", data => {
           const dataString = data.toString(this.options.encoding).trim()
           if (this.defaultListener) {
-            const emitString = this.parseListenerCallback(this.defaultListener(dataString))
-            socket.end(emitString)
+            const result = this.defaultListener(dataString);
+            if (this.isPromise(result)) {
+              (result as Promise<string | object>).then(value => {
+                const emitString = this.parseListenerCallback(value)
+                socket.end(emitString)
+              })
+            } else {
+              const emitString = this.parseListenerCallback(this.defaultListener(dataString))
+              socket.end(emitString)
+            }
           } else {
             if (this.listeners.has(dataString)) {
               const listener = this.listeners.get(dataString)
               if (listener) {
-                const emitString = this.parseListenerCallback(listener())
-                socket.end(emitString)
+                const listenerResult = listener()
+                if (this.isPromise(listenerResult)) {
+                  (listenerResult as Promise<string | object>).then(value => {
+                    const emitString = this.parseListenerCallback(value)
+                    socket.end(emitString)
+                  })
+                } else {
+                  const emitString = this.parseListenerCallback(listener())
+                  socket.end(emitString)
+                }
               } else {
                 this.log("Error parsing callback value: " + dataString)
                 socket.end()
@@ -114,6 +130,20 @@ export default class Server {
       if (this.callbacks.onStart) {
         this.callbacks.onStart()
       }
+    })
+  }
+
+  stop(callback?: () => void) {
+    this.socketServer.close(() => {
+      this.log("TCP server closed")
+      callback && callback()
+    })
+  }
+
+  restart() {
+    this.log("Restarting TCP server...")
+    this.stop(() => {
+      this.start()
     })
   }
 
@@ -143,6 +173,10 @@ export default class Server {
     if (this.callbacks.onClientRejected) {
       this.callbacks.onClientRejected(socket.localPort, socket.localAddress)
     }
+  }
+
+  private isPromise(obj: any): boolean {
+    return !!obj && (typeof obj === 'object' || typeof obj === 'function') && typeof obj.then === 'function';
   }
 
   private log(message: string, isError: boolean = false) {

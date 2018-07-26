@@ -89,6 +89,7 @@ export default class Server {
         if (this.callbacks.onClientConnected) {
           this.callbacks.onClientConnected(socket.remotePort, socket.remoteAddress)
         }
+        socket.on("end", () => socket.destroy())
         socket.on("data", data => {
           const dataString = data.toString(this.options.encoding).trim()
           if (this.defaultListener) {
@@ -120,6 +121,9 @@ export default class Server {
                 this.log("Error parsing callback value: " + dataString)
                 socket.end()
               }
+            } else {
+              this.log("Invalid directive: " + dataString)
+              socket.end()
             }
           }
         })

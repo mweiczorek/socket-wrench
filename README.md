@@ -26,11 +26,12 @@ To setup your TCP server, choose your port number and accept one or more "direct
        .accept("give-me-the-things", () => "the things")
        .start()
  
- You can chain as many `server.accept()` calls together as you like. The callback accepts either a string or object. Objects are automatically serialized to JSON strings for easy transport:
+ You can chain as many `server.accept()` calls together as you like. The callback accepts either a string, object or a promise that returns a string or object. Objects are automatically serialized to JSON strings for easy transport:
 
     new Server(5555)
       .accept("gimme-the-things", () => "the things")
       .accept("gimme-some-json", gimmeJson)
+      .accept("something-async", gimmePromise)
       .start()
 
 	function gimmeJson() {
@@ -40,6 +41,12 @@ To setup your TCP server, choose your port number and accept one or more "direct
         baz: true
       }
 	}
+
+    function gimmePromise() {
+      return new Promise((resolve, reject) => {
+        setTimeout(() => resolve(gimmeJson()), 1000)
+      })
+    }
 
 Or, you can call `server.acceptAny()`, and the input string isn't parsed. Instead, the same function is called for any accepted socket connection. Useful if your use case is to send a JSON string for processing and have the app hosting the server do the heavy lifting. If you use this, any `server.accept()` directives are ignored.
 
@@ -112,12 +119,12 @@ You can also listen for specific events. Connection errors are sent via callback
 ### server.accept(directive, callback) : Server
 Apply callback to accepted client connection that matches `directive`
 - **directive** `string` Incoming string to match to callback
-- **callback** `function() => string | object` callback to apply to `directive`. Must return a string or object. Objects are automatically serialized to JSON
+- **callback** `function() => string | object | Promise<string|object>` callback to apply to `directive`. Must return a string, object or `Promise<string|object>`. Objects are automatically serialized to JSON
 
 -----
 ### server.acceptAny(callback) : Server
 Apply the same callback to all accepted client connections
-- **callback** `function(data: string) => string | object` callback to apply to `data`. Useful for processing data with a delegate function. Must return a string or object. Objects are automatically serialized to JSON
+- **callback** `function(data: string) => string | object | Promise<string|object>` callback to apply to `data`. Useful for processing data with a delegate function. Must return a string or object. Objects are automatically serialized to JSON
 
 -----
 ### server.onStart(callback) : Server

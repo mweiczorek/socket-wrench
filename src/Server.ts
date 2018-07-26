@@ -18,6 +18,7 @@ interface ClientCallbacks {
   onStart?: () => void
   onClientRejected?: (port?: number, host?: string) => void
   onClientConnected?: (port?: number, host?: string) => void
+  onClientClosed?: (port?: number, host?: string) => void
   onStop?: () => void
 }
 
@@ -73,6 +74,11 @@ export default class Server {
     return this
   }
 
+  onClientClosed(callback: (port?: number, host?: string) => void): Server {
+    this.callbacks.onClientClosed = callback
+    return this
+  }
+
   onStop(callback: () => void): Server {
     this.callbacks.onStop = callback
     return this
@@ -85,11 +91,17 @@ export default class Server {
         this.log("Client rejected from " + remote, true)
         this.rejectConnection(socket)
       } else {
-        this.log("Client connected from " + remote)
+        this.log("Client connected: " + remote)
         if (this.callbacks.onClientConnected) {
           this.callbacks.onClientConnected(socket.remotePort, socket.remoteAddress)
         }
-        socket.on("end", () => socket.destroy())
+        socket.on("close", () => {
+          socket.destroy()
+          this.log("Client closed: " + remote)
+          if (this.callbacks.onClientClosed) {
+            this.callbacks.onClientClosed(socket.remotePort, socket.remoteAddress)
+          }
+        })
         socket.on("data", data => {
           const dataString = data.toString(this.options.encoding).trim()
           if (this.defaultListener) {

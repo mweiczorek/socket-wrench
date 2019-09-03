@@ -1,6 +1,6 @@
 import { createServer, Socket, Server as SocketServer } from "net"
 import { serverLogger } from "./Logger";
-import { localhostIPV4, localhostIPV6 } from "./Constants";
+import { localhostIPV4, localhostIPV6, lf } from "./Constants";
 
 type DirectiveCallback = () => string | object | Promise<string | object>
 type DefaultCallback = (data: string) => string | object | Promise<string | object>
@@ -96,10 +96,12 @@ export default class Server {
           this.callbacks.onClientConnected(socket.remotePort, socket.remoteAddress)
         }
         socket.on("close", () => {
-          socket.destroy()
-          this.log("Client closed: " + remote)
-          if (this.callbacks.onClientClosed) {
-            this.callbacks.onClientClosed(socket.remotePort, socket.remoteAddress)
+          if (!socket.destroyed) {
+            socket.destroy()
+            this.log("Client closed: " + remote)
+            if (this.callbacks.onClientClosed) {
+              this.callbacks.onClientClosed(socket.remotePort, socket.remoteAddress)
+            }
           }
         })
         socket.on("data", data => {
@@ -109,11 +111,11 @@ export default class Server {
             if (this.isPromise(result)) {
               (result as Promise<string | object>).then(value => {
                 const emitString = this.parseListenerCallback(value)
-                socket.end(emitString)
+                this.emit(socket, emitString)
               })
             } else {
               const emitString = this.parseListenerCallback(this.defaultListener(dataString))
-              socket.end(emitString)
+              this.emit(socket, emitString)
             }
           } else {
             if (this.listeners.has(dataString)) {
@@ -123,19 +125,19 @@ export default class Server {
                 if (this.isPromise(listenerResult)) {
                   (listenerResult as Promise<string | object>).then(value => {
                     const emitString = this.parseListenerCallback(value)
-                    socket.end(emitString)
+                    this.emit(socket, emitString)
                   })
                 } else {
                   const emitString = this.parseListenerCallback(listener())
-                  socket.end(emitString)
+                  this.emit(socket, emitString)
                 }
               } else {
                 this.log("Error parsing callback value: " + dataString)
-                socket.end()
+                this.emit(socket, "")
               }
             } else {
               this.log("Invalid directive: " + dataString)
-              socket.end()
+              this.emit(socket, "")
             }
           }
         })
@@ -161,6 +163,15 @@ export default class Server {
     this.stop(() => {
       this.start()
     })
+  }
+
+  private emit(socket: Socket, message?: string) {
+    socket.end(message + lf)
+    this.log("Client closed: " + socket.remoteAddress + ":" + socket.remotePort)
+    if (this.callbacks.onClientClosed) {
+      this.callbacks.onClientClosed(socket.remotePort, socket.remoteAddress)
+    }
+    socket.destroy()
   }
 
   private parseListenerCallback(received: string | object): string | undefined {

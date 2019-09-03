@@ -192,6 +192,10 @@ Returns the string representation of the data sent to the client. Encoded as dir
 ### socketResponse.toJson()  : object
 Returns the parsed JSON from inbound data. This returns the same value as `client.requestJson()`
 
+----
+### client.destroy() : void
+Destroy (close) the client socket
+
 # License
 MIT
 

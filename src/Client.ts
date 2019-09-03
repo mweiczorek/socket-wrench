@@ -81,6 +81,13 @@ export default class Client {
   }
 
   /**
+   * Destroy (close) the socket
+   */
+  destroy() {
+    this.socket.destroy()
+  }
+
+  /**
    * Primitive request to socket server
    * @param payload string or object to send
    */

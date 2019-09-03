@@ -21,6 +21,7 @@ export declare class Server {
   onStart(callback: () => void): Server;
   onClientRejected(callback: (port?: number, host?: string) => void): Server;
   onClientConnected(callback: (port?: number, host?: string) => void): Server;
+  onClientClosed(callback: (port?: number, host?: string) => void): Server;
   onStop(callback: () => void): Server;
   start(): void;
   private parseListenerCallback;
@@ -42,6 +43,7 @@ export declare class Client {
   constructor(port: number, options?: ClientOptions);
   onConnect(callback: (err?: Error) => void): Client;
   onDestroy(callback: () => void): Client;
+  destroy(): void
   request(payload: string | object): Promise<SocketResponse>;
   requestString(payload: string | object): Promise<string>;
   requestJson(payload: string | object): Promise<object>;

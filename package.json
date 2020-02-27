@@ -20,7 +20,7 @@
     "events"
   ],
   "devDependencies": {
-    "@types/node": "^10.5.2",
+    "@types/node": "^13.7.6",
     "dts-bundle": "^0.7.3",
     "rimraf": "^2.6.2",
     "typescript": "^2.9.2"

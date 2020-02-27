@@ -1,4 +1,4 @@
-import { createServer, Socket, Server as SocketServer } from "net"
+import { createServer, Socket, Server as SocketServer, AddressInfo } from "net"
 import { serverLogger } from "./Logger";
 import { localhostIPV4, localhostIPV6, lf } from "./Constants";
 
@@ -33,93 +33,97 @@ export interface ServerOptions {
 
 export default class Server {
 
-  readonly port: number
-  readonly host?: string
-  private readonly options: ServerOptions
-  private readonly callbacks: ClientCallbacks = {}
-  private socketServer: SocketServer
-  private listeners: Map<string, DirectiveCallback> = new Map()
-  private defaultListener: DefaultCallback | undefined
+  private _port: number
+  private readonly _host?: string
+  private readonly _options: ServerOptions
+  private readonly _callbacks: ClientCallbacks = {}
+  private _socketServer: SocketServer
+  private _listeners: Map<string, DirectiveCallback> = new Map()
+  private _defaultListener: DefaultCallback | undefined
 
   constructor(port: number, options?: ServerOptions) {
-    this.port = port
-    this.options = Object.assign(defaultOptions, options)
-    if (this.options.localhostOnly) {
-      this.host = this.options.ipStack == 4 ? localhostIPV4 : localhostIPV6
+    this._port = port
+    this._options = { ...defaultOptions, ...options }
+    if (this._options.localhostOnly) {
+      this._host = this._options.ipStack == 4 ? localhostIPV4 : localhostIPV6
     }
   }
 
+  get port(): number {
+    return this._port
+  }
+
   acceptAny(callback: (data: string) => string | object | Promise<string | object>): Server {
-    this.defaultListener = callback
+    this._defaultListener = callback
     return this
   }
 
   accept(directive: string, callback: () => string | object | Promise<string | object>): Server {
-    this.listeners.set(directive.trim(), callback)
+    this._listeners.set(directive.trim(), callback)
     return this
   }
 
   onStart(callback: () => void): Server {
-    this.callbacks.onStart = callback
+    this._callbacks.onStart = callback
     return this
   }
 
   onClientRejected(callback: (port?: number, host?: string) => void): Server {
-    this.callbacks.onClientRejected = callback
+    this._callbacks.onClientRejected = callback
     return this
   }
 
   onClientConnected(callback: (port?: number, host?: string) => void): Server {
-    this.callbacks.onClientConnected = callback
+    this._callbacks.onClientConnected = callback
     return this
   }
 
   onClientClosed(callback: (port?: number, host?: string) => void): Server {
-    this.callbacks.onClientClosed = callback
+    this._callbacks.onClientClosed = callback
     return this
   }
 
   onStop(callback: () => void): Server {
-    this.callbacks.onStop = callback
+    this._callbacks.onStop = callback
     return this
   }
 
   start() {
-    this.socketServer = createServer(socket => {
+    this._socketServer = createServer(socket => {
       const remote = socket.remoteAddress + ":" + socket.remotePort;
       if (!this.canConnect(socket)) {
         this.log("Client rejected from " + remote, true)
         this.rejectConnection(socket)
       } else {
         this.log("Client connected: " + remote)
-        if (this.callbacks.onClientConnected) {
-          this.callbacks.onClientConnected(socket.remotePort, socket.remoteAddress)
+        if (this._callbacks.onClientConnected) {
+          this._callbacks.onClientConnected(socket.remotePort, socket.remoteAddress)
         }
         socket.on("close", () => {
           if (!socket.destroyed) {
             socket.destroy()
             this.log("Client closed: " + remote)
-            if (this.callbacks.onClientClosed) {
-              this.callbacks.onClientClosed(socket.remotePort, socket.remoteAddress)
+            if (this._callbacks.onClientClosed) {
+              this._callbacks.onClientClosed(socket.remotePort, socket.remoteAddress)
             }
           }
         })
         socket.on("data", data => {
-          const dataString = data.toString(this.options.encoding).trim()
-          if (this.defaultListener) {
-            const result = this.defaultListener(dataString);
+          const dataString = data.toString(this._options.encoding).trim()
+          if (this._defaultListener) {
+            const result = this._defaultListener(dataString);
             if (this.isPromise(result)) {
               (result as Promise<string | object>).then(value => {
                 const emitString = this.parseListenerCallback(value)
                 this.emit(socket, emitString)
               })
             } else {
-              const emitString = this.parseListenerCallback(this.defaultListener(dataString))
+              const emitString = this.parseListenerCallback(this._defaultListener(dataString))
               this.emit(socket, emitString)
             }
           } else {
-            if (this.listeners.has(dataString)) {
-              const listener = this.listeners.get(dataString)
+            if (this._listeners.has(dataString)) {
+              const listener = this._listeners.get(dataString)
               if (listener) {
                 const listenerResult = listener()
                 if (this.isPromise(listenerResult)) {
@@ -143,16 +147,17 @@ export default class Server {
         })
       }
     })
-    this.socketServer.listen(this.port, this.host, () => {
-      this.log(`TCP server started on ${this.host}:${this.port}`)
-      if (this.callbacks.onStart) {
-        this.callbacks.onStart()
+    this._socketServer.listen(this._port, this._host, () => {
+      this._port = (this._socketServer.address() as AddressInfo).port
+      this.log(`TCP server started on ${this._host}:${this._port}`)
+      if (this._callbacks.onStart) {
+        this._callbacks.onStart()
       }
     })
   }
 
   stop(callback?: () => void) {
-    this.socketServer.close(() => {
+    this._socketServer.close(() => {
       this.log("TCP server closed")
       callback && callback()
     })
@@ -168,8 +173,8 @@ export default class Server {
   private emit(socket: Socket, message?: string) {
     socket.end(message + lf)
     this.log("Client closed: " + socket.remoteAddress + ":" + socket.remotePort)
-    if (this.callbacks.onClientClosed) {
-      this.callbacks.onClientClosed(socket.remotePort, socket.remoteAddress)
+    if (this._callbacks.onClientClosed) {
+      this._callbacks.onClientClosed(socket.remotePort, socket.remoteAddress)
     }
     socket.destroy()
   }
@@ -187,18 +192,20 @@ export default class Server {
   }
 
   private canConnect(socket: Socket): boolean {
-    if (!this.options.localhostOnly && socket.remoteAddress && this.options.whitelist)
-      if (this.options.whitelist.indexOf(socket.remoteAddress) > -1)
+    if (!this._options.localhostOnly && socket.remoteAddress && this._options.whitelist)
+      if (this._options.whitelist.indexOf(socket.remoteAddress) > -1)
         return true
-    if (this.options.localhostOnly && socket.remoteAddress === this.host)
+    if (this._options.localhostOnly && socket.remoteAddress === this._host)
       return true
     return false
   }
 
   private rejectConnection(socket: Socket) {
-    socket.end(this.options.clientRejectionMessage)
-    if (this.callbacks.onClientRejected) {
-      this.callbacks.onClientRejected(socket.localPort, socket.localAddress)
+    if (this._options.clientRejectionMessage)
+      socket.write(this._options.clientRejectionMessage)
+    socket.end()
+    if (this._callbacks.onClientRejected) {
+      this._callbacks.onClientRejected(socket.localPort, socket.localAddress)
     }
   }
 
@@ -207,7 +214,7 @@ export default class Server {
   }
 
   private log(message: string, isError: boolean = false) {
-    if (this.options.logActivity) {
+    if (this._options.logActivity) {
       serverLogger(this.port, message, isError)
     }
   }

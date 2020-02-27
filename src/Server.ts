@@ -33,8 +33,8 @@ export interface ServerOptions {
 
 export default class Server {
 
-  private readonly port: number
-  private readonly host?: string
+  readonly port: number
+  readonly host?: string
   private readonly options: ServerOptions
   private readonly callbacks: ClientCallbacks = {}
   private socketServer: SocketServer

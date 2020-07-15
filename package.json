@@ -2,12 +2,15 @@
   "name": "sockexchange",
   "version": "1.1.8",
   "description": "NodeJS TCP exchange library",
-  "main": "./lib/index.js",
+  "main": "index.js",
   "author": "Michael Wieczorek",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/mweiczorek/sockexchange"
+    "url": "https://github.com/nolawnchairs/sockexchange"
+  },
+  "bugs": {
+    "url": "https://github.com/nolawnchairs/sockexchange/issues"
   },
   "typescript": {
     "definition": "./index.d.ts"
@@ -20,16 +23,15 @@
     "events"
   ],
   "devDependencies": {
+    "@nolawnchairs/logger": "^2.1.1",
     "@types/node": "^13.7.6",
     "dts-bundle": "^0.7.3",
     "rimraf": "^2.6.2",
     "typescript": "^2.9.2"
   },
-  "dependencies": {
-    "colors": "^1.3.0"
-  },
   "scripts": {
-    "test": "npm run compile && ts-node test.ts",
-    "compile": "rimraf ./lib && tsc"
+    "test": "node test",
+    "compile": "rimraf ./lib && tsc",
+    "publish": "npm publish --access public"
   }
 }

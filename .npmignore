@@ -1,3 +1,5 @@
 /src
 /compile.js
-/test.ts
+/test.js
+.gitignore
+compile.js

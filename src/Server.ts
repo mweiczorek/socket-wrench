@@ -1,6 +1,6 @@
-import { createServer, Socket, Server as SocketServer, AddressInfo } from "net"
-import { serverLogger } from "./Logger";
-import { localhostIPV4, localhostIPV6, lf } from "./Constants";
+import { createServer, Socket, Server as SocketServer, AddressInfo } from 'net'
+import { localhostIPV4, localhostIPV6, lf } from './Constants'
+import { Log } from './Logger'
 
 type DirectiveCallback = () => string | object | Promise<string | object>
 type DefaultCallback = (data: string) => string | object | Promise<string | object>
@@ -8,10 +8,10 @@ type DefaultCallback = (data: string) => string | object | Promise<string | obje
 const defaultOptions: ServerOptions = {
   logActivity: false,
   ipStack: 4,
-  encoding: "utf8",
+  encoding: 'utf8',
   localhostOnly: true,
   whitelist: [],
-  clientRejectionMessage: "Connection rejected",
+  clientRejectionMessage: 'Connection rejected',
 }
 
 interface ClientCallbacks {
@@ -90,28 +90,28 @@ export default class Server {
 
   start() {
     this._socketServer = createServer(socket => {
-      const remote = socket.remoteAddress + ":" + socket.remotePort;
+      const remote = socket.remoteAddress + ':' + socket.remotePort
       if (!this.canConnect(socket)) {
-        this.log("Client rejected from " + remote, true)
+        Log.debug('Client rejected from ' + remote)
         this.rejectConnection(socket)
       } else {
-        this.log("Client connected: " + remote)
+        Log.debug('Client connected: ' + remote)
         if (this._callbacks.onClientConnected) {
           this._callbacks.onClientConnected(socket.remotePort, socket.remoteAddress)
         }
-        socket.on("close", () => {
+        socket.on('close', () => {
           if (!socket.destroyed) {
             socket.destroy()
-            this.log("Client closed: " + remote)
+            Log.debug('Client closed: ' + remote)
             if (this._callbacks.onClientClosed) {
               this._callbacks.onClientClosed(socket.remotePort, socket.remoteAddress)
             }
           }
         })
-        socket.on("data", data => {
+        socket.on('data', data => {
           const dataString = data.toString(this._options.encoding).trim()
           if (this._defaultListener) {
-            const result = this._defaultListener(dataString);
+            const result = this._defaultListener(dataString)
             if (this.isPromise(result)) {
               (result as Promise<string | object>).then(value => {
                 const emitString = this.parseListenerCallback(value)
@@ -136,12 +136,12 @@ export default class Server {
                   this.emit(socket, emitString)
                 }
               } else {
-                this.log("Error parsing callback value: " + dataString)
-                this.emit(socket, "")
+                Log.warn('Error parsing callback value: ' + dataString)
+                this.emit(socket, '')
               }
             } else {
-              this.log("Invalid directive: " + dataString)
-              this.emit(socket, "")
+              Log.warn('Invalid directive: ' + dataString)
+              this.emit(socket, '')
             }
           }
         })
@@ -149,7 +149,7 @@ export default class Server {
     })
     this._socketServer.listen(this._port, this._host, () => {
       this._port = (this._socketServer.address() as AddressInfo).port
-      this.log(`TCP server started on ${this._host}:${this._port}`)
+      Log.info(`TCP server started on ${this._host}:${this._port}`)
       if (this._callbacks.onStart) {
         this._callbacks.onStart()
       }
@@ -158,13 +158,13 @@ export default class Server {
 
   stop(callback?: () => void) {
     this._socketServer.close(() => {
-      this.log("TCP server closed")
+      Log.debug('TCP server closed')
       callback && callback()
     })
   }
 
   restart() {
-    this.log("Restarting TCP server...")
+    Log.debug('Restarting TCP server...')
     this.stop(() => {
       this.start()
     })
@@ -172,7 +172,7 @@ export default class Server {
 
   private emit(socket: Socket, message?: string) {
     socket.end(message + lf)
-    this.log("Client closed: " + socket.remoteAddress + ":" + socket.remotePort)
+    Log.debug('Client closed: ' + socket.remoteAddress + ':' + socket.remotePort)
     if (this._callbacks.onClientClosed) {
       this._callbacks.onClientClosed(socket.remotePort, socket.remoteAddress)
     }
@@ -180,13 +180,13 @@ export default class Server {
   }
 
   private parseListenerCallback(received: string | object): string | undefined {
-    if (typeof received == "string") {
+    if (typeof received == 'string') {
       return received.trim()
-    } else if (typeof received == "object") {
+    } else if (typeof received == 'object') {
       try {
         return JSON.stringify(received)
       } catch (err) {
-        this.log("Could not stringify JSON object: " + received.toString())
+        Log.debug('Could not stringify JSON object: ' + received.toString())
       }
     }
   }
@@ -210,12 +210,6 @@ export default class Server {
   }
 
   private isPromise(obj: any): boolean {
-    return !!obj && (typeof obj === 'object' || typeof obj === 'function') && typeof obj.then === 'function';
-  }
-
-  private log(message: string, isError: boolean = false) {
-    if (this._options.logActivity) {
-      serverLogger(this.port, message, isError)
-    }
+    return !!obj && (typeof obj === 'object' || typeof obj === 'function') && typeof obj.then === 'function'
   }
 }

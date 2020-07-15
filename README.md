@@ -2,103 +2,149 @@
 
 ## Simple TCP Client/Server for NodeJS
 
-**SockExchange** is a simple, lightweight abstraction layer around NodeJS sockets to setup quick TCP communication channels among the NodeJS microservices in your stack.
+**SockExchange** is a lightweight, zero-dependency abstraction layer around NodeJS sockets to setup quick TCP communication channels among your other Node apps. Normally, I'd use Redis or Apache Kafka for more advanced message brokering, but the benefit of sockets is that you get an immediate response.
 
 # Install
-You know what to do...
 
-    npm install sockexchange --save
-    yarn add sockexchange
+```
+npm i sockexchange
+yarn add sockexchange
+```
 
 # Usage
 
-    import { Client, Server } from "sockexchange"
+```
+import { Client, Server } from "sockexchange"
+```
 
+## Logging
+_since 1.2.0_
+
+Sockexchange will only log messages if a logger is provided by you. This decision stems from the Java convention whereby the user is left to decide how logging is implemented. To implement logging, you must provide a class or object whose interface matches ours:
+
+```
+debug(...args: any[]): void
+info(...args: any[]): void
+warn(...args: any[]): void
+error(...args: any[]): void
+```
+
+Set your log binding like this:
+```
+import { Log, ProvidedLogger } from 'sockexchange'
+
+class MyLogger implements ProvidedLogger {
+  debug(...args: any[]) {
+    ....
+  }
+  ...
+}
+
+Log.setLogger(new MyLogger())
+
+```
+# Server and Cient
 There are two facets to this package: **Server** and **Client**.
 
 ## Server
 
-    new Server(port: number, [options: ServerOptions])
+```
+new Server(port: number, [options: ServerOptions])
+```
     
 To setup your TCP server, choose your port number and accept one or more "directives":
  
-     new Server(5555)
-       .accept("give-me-the-things", () => "the things")
-       .start()
+```
+new Server(5555)
+  .accept("give-me-the-things", () => "the things")
+  .start()
+```
  
  You can chain as many `server.accept()` calls together as you like. The callback accepts either a string, object or a promise that returns a string or object. Objects are automatically serialized to JSON strings for easy transport:
 
-    new Server(5555)
-      .accept("gimme-the-things", () => "the things")
-      .accept("gimme-some-json", gimmeJson)
-      .accept("something-async", gimmePromise)
-      .start()
+```
+new Server(5555)
+  .accept("gimme-the-things", () => "the things")
+  .accept("gimme-some-json", gimmeJson)
+  .accept("something-async", gimmePromise)
+  .start()
 
-	function gimmeJson() {
-      return {
-        foo: "bar",
-        quux: 42,
-        baz: true
-      }
-	}
-
-    function gimmePromise() {
-      return new Promise((resolve, reject) => {
-        setTimeout(() => resolve(gimmeJson()), 1000)
-      })
+function gimmeJson() {
+    return {
+      foo: "bar",
+      quux: 42,
+      baz: true
     }
+}
+
+function gimmePromise() {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => resolve(gimmeJson()), 1000)
+  })
+}
+```
 
 Or, you can call `server.acceptAny()`, and the input string isn't parsed. Instead, the same function is called for any accepted socket connection. Useful if your use case is to send a JSON string for processing and have the app hosting the server do the heavy lifting. If you use this, any `server.accept()` directives are ignored.
 
-    new Server(5555)
-      .acceptAny(data => {
-	      const fancyJson = delegateFn.processIncoming(data)
-	      return fancyJson
-      })
-      .start()
+```
+new Server(5555)
+  .acceptAny(data => {
+    const fancyJson = delegateFn.processIncoming(data)
+    return fancyJson
+  })
+  .start()
+```
 
 There are event callbacks that you can use:
  
-
-    new Server(5555)
-	  .onStart(() => console.log("Server started"))
-	  .onClientConnected((port, host) => console.log(`Connection from ${host}:${port}`))
-	  .onClientRejected((port, host) => console.log(`Rejected: ${host}:${port}`))
-	  .onStop(() => console.log("Server stopped..."))
-	  .accept("mahna-mahna", () => "doot-doo-da-doo-doo")
-	  .start()
+```
+new Server(5555)
+  .onStart(() => console.log("Server started"))
+  .onClientConnected((port, host) => console.log(`Connection from ${host}:${port}`))
+  .onClientRejected((port, host) => console.log(`Rejected: ${host}:${port}`))
+  .onStop(() => console.log("Server stopped..."))
+  .accept("mahna-mahna", () => "doot-doo-da-doo-doo")
+  .start()
+```
 
 By default, only connections from localhost (127.0.0.1) are accepted. All other client connections are rejected.
 
 ## Client
 
-    new Client(port: number, [options: ClientOptions])
+```
+new Client(port: number, [options: ClientOptions])
+```
    
  Sending a request to your socket server is simple. Request the socket response as a string or JSON.
 
-    new Client(5555)
-      .requestString("gimme-the-things")
-      .then(str => console.log(str))  // "the things"
-      .catch(console.error)
+```
+new Client(5555)
+  .requestString("gimme-the-things")
+  .then(str => console.log(str))  // "the things"
+  .catch(console.error)
+```
 
 Socket responses are promises. Perfect for `async/await`.
 
-    async function getJsonFromSocket() {
-	    const client = new Client(5555)
-	    const json = await client.requestJson("gimme-json") // { foo: "bar", quux: 42, baz: true }
-	    console.log(json.foo) // bar
-        console.log(json.quux) // 42
-    }
+```
+async function getJsonFromSocket() {
+  const client = new Client(5555)
+  const json = await client.requestJson("gimme-json") // { foo: "bar", quux: 42, baz: true }
+  console.log(json.foo) // bar
+    console.log(json.quux) // 42
+}
+```
 
 You can also listen for specific events. Connection errors are sent via callback, other errors will accumulate in the `catch()` block.
 
-    new Client(5555, { logActivity: true })
-      .onConnect(err => err && console.error("Connection error"))
-      .onDestroy(() => console.log("Client disconnected"))
-      .requestJson("gimme-json")
-      .then(doTheThings)
-      .catch(console.error)
-      
+```
+new Client(5555, { logActivity: true })
+  .onConnect(err => err && console.error("Connection error"))
+  .onDestroy(() => console.log("Client disconnected"))
+  .requestJson("gimme-json")
+  .then(doTheThings)
+  .catch(console.error)
+```     
 
 # API
 

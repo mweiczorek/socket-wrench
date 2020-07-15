@@ -1,16 +1,16 @@
-import { Socket, SocketConnectOpts } from "net"
-import { clientLogger } from "./Logger";
-import { lf, localhost } from "./Constants";
+import { Socket, SocketConnectOpts } from 'net'
+import { lf, localhost } from './Constants'
+import { Log } from './Logger'
 
 /**
- * Default client options to be merged 
+ * Default client options to be merged
  * with user selecte options
  */
 const defaultOptions: ClientOptions = {
   logActivity: false,
   ipStack: 4,
-  outboundEncoding: "utf8",
-  inboundEncoding: "utf8"
+  outboundEncoding: 'utf8',
+  inboundEncoding: 'utf8'
 }
 
 /**
@@ -64,7 +64,7 @@ export default class Client {
   /**
    * Callback invoked when the client connects to the socket server
    * with a callback to handle a possible connection error
-   * @param callback 
+   * @param callback
    */
   onConnect(callback: (err?: Error) => void): Client {
     this.callbacks.onConnect = callback
@@ -73,7 +73,7 @@ export default class Client {
 
   /**
    * Callback for when the connection to the socket server is severed
-   * @param callback 
+   * @param callback
    */
   onDestroy(callback: () => void): Client {
     this.callbacks.onDestroy = callback
@@ -104,7 +104,7 @@ export default class Client {
    * value is a string
    * @param payload string or object to serialize
    */
-  requestString(payload: string | object): Promise<string> {
+  async requestString(payload: string | object): Promise<string> {
     return this.request(payload)
       .then(response => response.toString())
   }
@@ -114,7 +114,7 @@ export default class Client {
    * can be deserialized as JSON
    * @param payload string or object to serialize
    */
-  requestJson(payload: string | object): Promise<object> {
+  async requestJson(payload: string | object): Promise<object> {
     return this.request(payload)
       .then(response => response.toJson())
   }
@@ -134,17 +134,17 @@ export default class Client {
       this.socket.connect(options, () => {
         if (this.callbacks.onConnect)
           this.callbacks.onConnect()
-        this.log("Receiver client connected")
+        Log.info('Receiver client connected')
         this.status = Status.Connected
         this.socket.write(payload.getOutbound(), this.options.outboundEncoding, () => {
           this.status = Status.Idle
         })
       })
-      this.socket.on("error", err => {
+      this.socket.on('error', err => {
         if (this.status == Status.Disconnected) {
           this.status = Status.Errored
-          this.log("Connection Error", true)
-          this.log(`Client is using IPV${this.options.ipStack}. Check the server is using the same IP stack`, true)
+          Log.warn('Connection Error', true)
+          Log.warn(`Client is using IPV${this.options.ipStack}. Check the server is using the same IP stack`)
           if (this.callbacks.onConnect) {
             this.callbacks.onConnect(err)
           } else {
@@ -155,29 +155,18 @@ export default class Client {
           reject(err)
         }
       })
-      this.socket.on("data", data => buffer.append(data))
-      this.socket.on("close", () => {
-        this.log("Client disconnected", this.status == Status.Errored)
+      this.socket.on('data', data => buffer.append(data))
+      this.socket.on('close', () => {
+        Log.debug('Client disconnected')
         this.socket.destroy()
         if (this.callbacks.onDestroy) {
           this.callbacks.onDestroy()
         }
-        this.log("Client connection destroyed", this.status == Status.Errored)
+        Log.debug('Client connection destroyed')
         this.status = Status.Disconnected
       })
-      this.socket.on("end", () => resolve(new SocketResponse(buffer)))
+      this.socket.on('end', () => resolve(new SocketResponse(buffer)))
     })
-  }
-
-  /**
-   * Write a logging message to stdout
-   * @param message message to print
-   * @param isError is this an error?
-   */
-  private log(message: string, isError: boolean = false) {
-    if (this.options.logActivity) {
-      clientLogger(this.port, message, isError)
-    }
   }
 }
 
@@ -187,20 +176,20 @@ export default class Client {
  */
 class SocketExchange {
 
-  private payload: string = ""
+  private payload: string = ''
   readonly payloadError?: Error
 
   constructor(payload: string | object) {
-    if (typeof payload == "string") {
+    if (typeof payload == 'string') {
       this.payload = payload
-    } else if (typeof payload == "object") {
+    } else if (typeof payload == 'object') {
       try {
         this.payload = JSON.stringify(payload)
       } catch (err) {
-        this.payloadError = new Error("Invalid JSON: " + payload)
+        this.payloadError = new Error('Invalid JSON: ' + payload)
       }
     } else {
-      this.payloadError = new Error("Invalid message type. Expected string or object. Received " + typeof payload)
+      this.payloadError = new Error('Invalid message type. Expected string or object. Received ' + typeof payload)
     }
   }
 
@@ -239,7 +228,7 @@ export class SocketResponse {
     try {
       return JSON.parse(this.toString())
     } catch (e) {
-      throw new Error("Response JSON parse error")
+      throw new Error('Response JSON parse error')
     }
   }
 }
@@ -250,7 +239,7 @@ export class SocketResponse {
  */
 class StreamBuffer {
   private encoding: string
-  private bufferString = ""
+  private bufferString = ''
 
   constructor(encoding: string) {
     this.encoding = encoding
@@ -258,7 +247,7 @@ class StreamBuffer {
 
   /**
    * Append any data from the buffer into the buffer string
-   * @param buffer 
+   * @param buffer
    */
   append(buffer: Buffer) {
     this.bufferString += buffer.toString(this.encoding)

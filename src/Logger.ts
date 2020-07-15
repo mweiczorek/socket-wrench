@@ -1,26 +1,33 @@
-import * as colors from "colors"
 
-enum Facet {
-  Client = "CLIENT",
-  Server = "SERVER"
+export interface ProvidedLogger {
+  debug(...args: any[]): void
+  info(...args: any[]): void
+  warn(...args: any[]): void
+  error(...args: any[]): void
 }
+class LoggerImpl implements ProvidedLogger {
 
-export function clientLogger(port: number, message: string, isError: boolean = false) {
-  log(port, message, isError, Facet.Client)
-}
+  private _logger: ProvidedLogger
 
-export function serverLogger(port: number, message: string, isError: boolean = false) {
-  log(port, message, isError, Facet.Server)
-}
-
-function log(port: number, message: string, isError: boolean, direction: Facet) {
-  const pid = colors.cyan(process.pid.toString())
-  const portStr = colors.yellow(port.toString())
-  const context = isError ? colors.red(direction) : colors.green(direction)
-  const logMessage = `[ ${pid} | ${portStr} | ${context} ] > ${message}`
-  if (isError) {
-    console.error(logMessage)
-  } else {
-    console.log(logMessage)
+  setLogger(logger: ProvidedLogger) {
+    this._logger = logger
   }
+
+  debug(...args: any[]): void {
+    this._logger.debug(...args)
+  }
+  info(...args: any[]): void {
+    this._logger.debug(...args)
+  }
+  warn(...args: any[]): void {
+    this._logger.debug(...args)
+  }
+  error(...args: any[]): void {
+    this._logger.debug(...args)
+  }
+}
+
+const implementedLogger = new LoggerImpl()
+export {
+  implementedLogger as Log
 }

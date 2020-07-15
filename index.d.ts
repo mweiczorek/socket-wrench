@@ -8,13 +8,6 @@ export interface ServerOptions {
   encoding?: string;
 }
 export declare class Server {
-  private readonly port;
-  private readonly host?;
-  private readonly options;
-  private readonly callbacks;
-  private socketServer;
-  private listeners;
-  private defaultListener;
   constructor(port: number, options?: ServerOptions);
   acceptAny(callback: (data: string) => string | object): Server;
   accept(directive: string, callback: () => string | object): Server;
@@ -24,9 +17,6 @@ export declare class Server {
   onClientClosed(callback: (port?: number, host?: string) => void): Server;
   onStop(callback: () => void): Server;
   start(): void;
-  private parseListenerCallback;
-  private rejectConnection;
-  private log;
 }
 export interface ClientOptions {
   logActivity?: boolean;
@@ -37,9 +27,6 @@ export interface ClientOptions {
 export declare class Client {
   readonly port: number;
   readonly options: ClientOptions;
-  private socket;
-  private callbacks;
-  private status;
   constructor(port: number, options?: ClientOptions);
   onConnect(callback: (err?: Error) => void): Client;
   onDestroy(callback: () => void): Client;
@@ -47,8 +34,6 @@ export declare class Client {
   request(payload: string | object): Promise<SocketResponse>;
   requestString(payload: string | object): Promise<string>;
   requestJson(payload: string | object): Promise<object>;
-  private startExchange;
-  private log;
 }
 declare class SocketResponse {
   private buffer;
@@ -62,4 +47,18 @@ declare class StreamBuffer {
   constructor(encoding: string);
   append(buffer: Buffer): void;
   toString(): string;
+}
+
+export interface ProvidedLogger {
+  debug(...args: any[]): void
+  info(...args: any[]): void
+  warn(...args: any[]): void
+  error(...args: any[]): void
+}
+export declare class Log {
+  setLogger(logger: ProvidedLogger): void
+  debug(...args: any[]): void
+  info(...args: any[]): void
+  warn(...args: any[]): void
+  error(...args: any[]): void
 }

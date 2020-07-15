@@ -25,7 +25,6 @@
   "devDependencies": {
     "@nolawnchairs/logger": "^2.1.1",
     "@types/node": "^13.7.6",
-    "dts-bundle": "^0.7.3",
     "rimraf": "^3.0.2",
     "typescript": "^2.9.2"
   },

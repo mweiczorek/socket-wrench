@@ -32,6 +32,6 @@
   "scripts": {
     "test": "node test",
     "compile": "rimraf ./lib && tsc",
-    "publish": "npm publish --access public"
+    "npm-publish": "npm publish --access public"
   }
 }
